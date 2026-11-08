@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Том и Джерри · 3D-площадка</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="tag">ПЕСОЧНИЦА / 01</p>
+        <h1>Том и Джерри<span>.</span></h1>
+      </div>
+      <button id="reset" type="button">↺ Сначала</button>
+    </header>
+    <section class="stage" aria-label="Игровая площадка">
+      <canvas aria-label="Трёхмерная карта с Томом, Джерри, батутом и фигурами"></canvas>
+      <p class="hint">Наступи на батут, чтобы взлететь. <span class="keyboard">C — сменить вид. От первого лица смотри мышью.</span></p>
+      <p id="respawn-notice" class="respawn-notice" role="status"></p>
+      <div class="touch">
+        <div class="arrows">
+          <button data-key="ArrowUp" aria-label="Вперёд">↑</button>
+          <button data-key="ArrowLeft" aria-label="Влево">←</button>
+          <button data-key="ArrowDown" aria-label="Назад">↓</button>
+          <button data-key="ArrowRight" aria-label="Вправо">→</button>
+        </div>
+        <button data-key="Space">Прыжок</button>
+      </div>
+    </section>
+    <footer><span class="keyboard"><kbd>WASD</kbd> / <kbd>↑ ← ↓ →</kbd> Ходьба · <kbd>Пробел</kbd> Прыжок</span><span>Подойди к фигурам, чтобы их толкнуть</span></footer>
+  </main>
+</body>
+</html>
