@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Том и Джерри · 3D-площадка</title>
-  <link rel="stylesheet" href="style.css?v=2">
-  <script src="game.js?v=2" defer></script>
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="game.js?v=3" defer></script>
 </head>
 <body>
   <main>
@@ -24,17 +24,17 @@
           <button id="camera" type="button" aria-pressed="false" aria-label="Вид от первого лица">Вид: сверху</button>
           <button id="fullscreen" type="button" aria-pressed="false" aria-label="На весь экран" title="На весь экран">⛶</button>
         </div>
-        <p class="hint">Наступи на батут, чтобы взлететь. <span class="keyboard">C — сменить вид. От первого лица смотри мышью.</span><span class="touch-hint">От первого лица веди пальцем по полю.</span></p>
+        <p class="hint">Наступи на батут, чтобы взлететь. <span class="keyboard">C — сменить вид. От первого лица смотри мышью.</span><span class="touch-hint">Тяни джойстик слева. От первого лица веди пальцем по полю для обзора.</span></p>
       </div>
       <p id="respawn-notice" class="respawn-notice" role="status"></p>
-      <div class="touch">
-        <div class="arrows">
-          <button type="button" data-key="KeyW" aria-label="Вперёд">↑</button>
-          <button type="button" data-key="KeyA" aria-label="Влево">←</button>
-          <button type="button" data-key="KeyS" aria-label="Назад">↓</button>
-          <button type="button" data-key="KeyD" aria-label="Вправо">→</button>
-        </div>
-        <button type="button" data-key="Space">Прыжок</button>
+      <div class="touch" role="group" aria-label="Сенсорное управление">
+        <div class="stick" aria-hidden="true"><span class="stick-knob"></span></div>
+        <button id="jump" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20V4M5 11l7-7 7 7"/>
+          </svg>
+          Прыжок
+        </button>
       </div>
     </section>
     <footer><span class="keyboard"><kbd>WASD</kbd> / <kbd>↑ ← ↓ →</kbd> Ходьба · <kbd>Пробел</kbd> Прыжок</span><span>Подойди к фигурам, чтобы их толкнуть</span></footer>

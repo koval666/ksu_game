@@ -16,7 +16,10 @@ const spawns = [
 const player = { radius: 0.36 };
 const tom = { radius: 0.48, height: 2.2, y: 0 };
 const keys = new Set();
-const pointers = new Map();
+const stick = document.querySelector(".stick");
+let stickPointer = null;
+let stickX = 0;
+let stickY = 0;
 const controls = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight", "Space"]);
 let figures;
 let jumpQueued;
@@ -141,12 +144,21 @@ function reset() {
 }
 
 function pressed(...codes) {
-  return codes.some(code => keys.has(code) || [...pointers.values()].includes(code));
+  return codes.some(code => keys.has(code));
+}
+
+function resetStick() {
+  const pointer = stickPointer;
+  stickPointer = null;
+  stickX = stickY = 0;
+  stick.style.removeProperty("--stick-x");
+  stick.style.removeProperty("--stick-y");
+  if (pointer !== null && stick.hasPointerCapture(pointer)) stick.releasePointerCapture(pointer);
 }
 
 function clearControls() {
   keys.clear();
-  pointers.clear();
+  resetStick();
   lookPointer = null;
   jumpQueued = false;
 }
@@ -175,16 +187,44 @@ document.querySelector("#reset").addEventListener("click", event => {
   reset();
   event.currentTarget.blur();
 });
-document.querySelectorAll("[data-key]").forEach(button => {
-  button.addEventListener("pointerdown", event => {
-    event.preventDefault();
-    button.setPointerCapture(event.pointerId);
-    pointers.set(event.pointerId, button.dataset.key);
-    if (button.dataset.key === "Space") jumpQueued = true;
+function moveStick(event) {
+  if (event.pointerId !== stickPointer) return;
+  const rect = stick.getBoundingClientRect();
+  const radius = rect.width * 0.27;
+  const dx = event.clientX - rect.left - rect.width / 2;
+  const dy = event.clientY - rect.top - rect.height / 2;
+  const distance = Math.hypot(dx, dy);
+  const scale = distance ? Math.min(1, radius / distance) : 0;
+  stick.style.setProperty("--stick-x", `${dx * scale}px`);
+  stick.style.setProperty("--stick-y", `${dy * scale}px`);
+  const deadZone = radius * 0.18;
+  const strength = distance > deadZone ? Math.min(1, (distance - deadZone) / (radius - deadZone)) / distance : 0;
+  stickX = dx * strength;
+  stickY = dy * strength;
+}
+
+stick.addEventListener("pointerdown", event => {
+  if (stickPointer !== null || event.button !== 0) return;
+  event.preventDefault();
+  stickPointer = event.pointerId;
+  stick.setPointerCapture(stickPointer);
+  moveStick(event);
+});
+stick.addEventListener("pointermove", moveStick);
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  stick.addEventListener(type, event => {
+    if (event.pointerId === stickPointer) resetStick();
   });
-  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
-    button.addEventListener(type, event => pointers.delete(event.pointerId));
-  }
+}
+
+const jumpButton = document.querySelector("#jump");
+jumpButton.addEventListener("pointerdown", event => {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  jumpQueued = true;
+});
+jumpButton.addEventListener("click", event => {
+  if (event.detail === 0) jumpQueued = true;
 });
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -274,16 +314,19 @@ function update(dt) {
   const turn = Number(pressed("ArrowLeft")) - Number(pressed("ArrowRight"));
   if (firstPerson && fallTime === 0) player.yaw += turn * 2.5 * dt;
   const strafe = Number(pressed("KeyD")) - Number(pressed("KeyA"));
-  const horizontal = firstPerson ? strafe :
+  const keyboardX = firstPerson ? strafe :
     Number(pressed("KeyD", "ArrowRight")) - Number(pressed("KeyA", "ArrowLeft"));
-  const vertical = Number(pressed("KeyS", "ArrowDown")) - Number(pressed("KeyW", "ArrowUp"));
+  const keyboardY = Number(pressed("KeyS", "ArrowDown")) - Number(pressed("KeyW", "ArrowUp"));
+  const horizontal = keyboardX || keyboardY ? keyboardX : stickX;
+  const vertical = keyboardX || keyboardY ? keyboardY : stickY;
   const length = Math.hypot(horizontal, vertical);
   player.walking = false;
   if (length && fallTime === 0) {
     const side = firstPerson ? [-Math.cos(player.yaw), 0, Math.sin(player.yaw)] : right;
     const back = firstPerson ? [-Math.sin(player.yaw), 0, -Math.cos(player.yaw)] : view;
-    const dx = (horizontal * side[0] + vertical * back[0]) / length * 5.6 * dt;
-    const dz = (horizontal * side[2] + vertical * back[2]) / length * 5.6 * dt;
+    const speed = 5.6 * dt / Math.max(1, length);
+    const dx = (horizontal * side[0] + vertical * back[0]) * speed;
+    const dz = (horizontal * side[2] + vertical * back[2]) * speed;
     const x = player.x + dx;
     const z = player.z + dz;
     if (!firstPerson) player.yaw = Math.atan2(dx, dz);

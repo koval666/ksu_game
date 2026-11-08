@@ -62,10 +62,38 @@ body.game-expanded { overflow: hidden; }
   footer { margin-top: 8px; }
   .touch-hint { display: inline; }
   .touch { position: absolute; bottom: var(--bottom); left: var(--left); right: var(--right); display: flex; align-items: end; justify-content: space-between; pointer-events: none; }
-  .touch button { min-width: 48px; min-height: 48px; pointer-events: auto; }
-  canvas, .touch button { touch-action: none; user-select: none; -webkit-user-select: none; }
-  .arrows { display: grid; grid-template-columns: repeat(3, 48px); gap: 5px; }
-  .arrows button:first-child { grid-area: 1 / 2; }
-  .arrows button:not(:first-child) { grid-row: 2; }
+  .stick, #jump {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border: 2px solid #d5f2dcaa;
+    border-radius: 50%;
+    background: #15291fbb;
+    box-shadow: 0 3px 12px #0005;
+    pointer-events: auto;
+  }
+  .stick { width: clamp(104px, 27vmin, 148px); }
+  .stick-knob {
+    width: 44%;
+    aspect-ratio: 1;
+    border: 2px solid #ecf6ed;
+    border-radius: 50%;
+    background: #617d6c;
+    transform: translate(var(--stick-x, 0px), var(--stick-y, 0px));
+    pointer-events: none;
+  }
+  #jump {
+    width: clamp(80px, 21vmin, 108px);
+    align-content: center;
+    gap: 2px;
+    padding: 0;
+    background: #b7f079;
+    color: #172817;
+    font-size: .85rem;
+    font-weight: 800;
+  }
+  #jump svg { width: 28px; }
+  #jump:active { background: #e0ffbd; }
+  canvas, .stick, #jump { touch-action: none; user-select: none; -webkit-user-select: none; }
 }
 @media (pointer: coarse) { .keyboard { display: none; } }
