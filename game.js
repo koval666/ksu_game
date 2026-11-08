@@ -2,6 +2,9 @@
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
+const stage = document.querySelector(".stage");
+const cameraButton = document.querySelector("#camera");
+const fullscreenButton = document.querySelector("#fullscreen");
 const respawnNotice = document.querySelector("#respawn-notice");
 const world = { x: 9, z: 6.5 };
 const plate = { x: 4.7, z: 2.3, radius: 1.08, height: 0.23 };
@@ -22,6 +25,7 @@ let respawnTime;
 let fallTime;
 let firstPerson = false;
 let cameraPitch = -0.22;
+let lookPointer = null;
 
 async function lockCameraMouse() {
   if (document.pointerLockElement === canvas) return;
@@ -32,19 +36,88 @@ async function lockCameraMouse() {
   }
 }
 
-canvas.addEventListener("click", () => {
-  if (firstPerson) lockCameraMouse();
+canvas.addEventListener("click", event => {
+  if (firstPerson && event.pointerType === "mouse") lockCameraMouse();
 });
 
 document.addEventListener("pointerlockchange", () => {
   if (!firstPerson && document.pointerLockElement === canvas) document.exitPointerLock();
 });
 
-canvas.addEventListener("mousemove", event => {
+function turnCamera(dx, dy) {
   if (!firstPerson || fallTime > 0) return;
-  player.yaw -= event.movementX * 0.003;
-  cameraPitch = clamp(cameraPitch - event.movementY * 0.003, -1.4, 1.4);
+  player.yaw -= dx * 0.003;
+  cameraPitch = clamp(cameraPitch - dy * 0.003, -1.4, 1.4);
+}
+
+canvas.addEventListener("pointerdown", event => {
+  if (!firstPerson || event.pointerType === "mouse" || lookPointer) return;
+  canvas.setPointerCapture(event.pointerId);
+  lookPointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
 });
+canvas.addEventListener("pointermove", event => {
+  if (event.pointerType === "mouse") {
+    turnCamera(event.movementX, event.movementY);
+  } else if (lookPointer?.id === event.pointerId) {
+    turnCamera(event.clientX - lookPointer.x, event.clientY - lookPointer.y);
+    lookPointer.x = event.clientX;
+    lookPointer.y = event.clientY;
+  }
+});
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  canvas.addEventListener(type, event => {
+    if (lookPointer?.id === event.pointerId) lookPointer = null;
+  });
+}
+
+function toggleCamera(useMouse) {
+  firstPerson = !firstPerson;
+  lookPointer = null;
+  cameraButton.setAttribute("aria-pressed", firstPerson);
+  cameraButton.textContent = firstPerson ? "Вид: от лица" : "Вид: сверху";
+  if (firstPerson) {
+    cameraPitch = -0.22;
+    if (useMouse) lockCameraMouse();
+  } else if (document.pointerLockElement === canvas) {
+    document.exitPointerLock();
+  }
+}
+cameraButton.addEventListener("click", () => toggleCamera(false));
+
+function syncFullscreen() {
+  const expanded = document.fullscreenElement === stage || stage.classList.contains("is-expanded");
+  const label = expanded ? "Выйти из полноэкранного режима" : "На весь экран";
+  fullscreenButton.setAttribute("aria-pressed", expanded);
+  fullscreenButton.setAttribute("aria-label", label);
+  fullscreenButton.title = label;
+  fullscreenButton.textContent = expanded ? "↙" : "⛶";
+  clearControls();
+}
+
+function expandInWindow(expanded) {
+  stage.classList.toggle("is-expanded", expanded);
+  document.body.classList.toggle("game-expanded", expanded);
+  syncFullscreen();
+}
+
+fullscreenButton.addEventListener("click", async () => {
+  if (stage.classList.contains("is-expanded")) {
+    expandInWindow(false);
+  } else if (document.fullscreenElement === stage) {
+    await document.exitFullscreen().catch(() => {});
+  } else {
+    try {
+      if (document.fullscreenEnabled && stage.requestFullscreen) {
+        await stage.requestFullscreen();
+        return;
+      }
+    } catch {
+      // Use the visible browser viewport when native fullscreen is blocked.
+    }
+    expandInWindow(true);
+  }
+});
+document.addEventListener("fullscreenchange", syncFullscreen);
 
 function spawnJerry() {
   Object.assign(player, { x: -1.8, z: 3.1, y: 0, vy: 0, yaw: 0.4, stride: 0, walking: false, bouncing: false });
@@ -74,19 +147,18 @@ function pressed(...codes) {
 function clearControls() {
   keys.clear();
   pointers.clear();
+  lookPointer = null;
   jumpQueued = false;
 }
 
 window.addEventListener("keydown", event => {
+  if (event.code === "Escape" && stage.classList.contains("is-expanded")) {
+    expandInWindow(false);
+    return;
+  }
   if (event.code === "KeyC" && !event.altKey && !event.ctrlKey && !event.metaKey) {
     if (event.repeat) return;
-    firstPerson = !firstPerson;
-    if (firstPerson) {
-      cameraPitch = -0.22;
-      lockCameraMouse();
-    } else if (document.pointerLockElement === canvas) {
-      document.exitPointerLock();
-    }
+    toggleCamera(true);
     return;
   }
   if (!controls.has(event.code) || event.altKey || event.ctrlKey || event.metaKey ||
@@ -544,7 +616,7 @@ function paintFaces() {
 }
 
 function draw() {
-  const ratio = window.devicePixelRatio || 1;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
   const pixelWidth = Math.round(canvas.clientWidth * ratio);
   const pixelHeight = Math.round(canvas.clientHeight * ratio);
   if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
